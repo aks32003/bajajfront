@@ -31,7 +31,7 @@ const App = () => {
         return;
       }
 
-      const res = await axios.post('http://localhost:3000/bfhl', jsonData);
+      const res = await axios.post('https://bajajback-im93.onrender.com/bfhl', jsonData);
       setResponse(res.data);
     } catch (err) {
       setError('Error processing request');
