@@ -1,44 +1,36 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import Ajv from 'ajv';
+import './App.css'; // Import the CSS file
 
 const App = () => {
-  const [input, setInput] = useState('');
-  const [response, setResponse] = useState(null);
+  const [jsonInput, setJsonInput] = useState('');
   const [error, setError] = useState('');
+  const [responseData, setResponseData] = useState(null);
   const [selectedOptions, setSelectedOptions] = useState([]);
 
-  const handleInputChange = (e) => {
-    setInput(e.target.value);
-  };
-
-  const validateJSON = (data) => {
-    const ajv = new Ajv();
-    const schema = { type: 'object', properties: { data: { type: 'array', items: { type: 'string' } } }, required: ['data'], additionalProperties: false };
-    const validate = ajv.compile(schema);
-    return validate(data);
-  };
-
-  const handleSubmit = async () => {
+  const handleJsonInputChange = (e) => {
+    setJsonInput(e.target.value);
     setError('');
-    setResponse(null);
+  };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     try {
-      const jsonData = JSON.parse(input);
+        const parsedData = JSON.parse(jsonInput);
+        if (!parsedData.data || !Array.isArray(parsedData.data)) {
+            setError('Invalid JSON format. "data" should be an array.');
+            return;
+        }
 
-      if (!validateJSON(jsonData)) {
-        setError('Invalid JSON format');
-        return;
-      }
-
-      const res = await axios.post('https://bajajback-im93.onrender.com/bfhl', jsonData);
-      setResponse(res.data);
+        const response = await axios.post('https://bajajback-im93.onrender.com/bfhl', parsedData);
+        setResponseData(response.data);
     } catch (err) {
-      setError('Error processing request');
+        setError('Invalid JSON format or server error.');
+        console.error(err);
     }
   };
 
-  const handleOptionChange = (e) => {
+  const handleMultiSelectChange = (e) => {
     const { options } = e.target;
     const selected = [];
     for (let i = 0; i < options.length; i++) {
@@ -50,46 +42,62 @@ const App = () => {
   };
 
   const renderResponse = () => {
-    if (!response) return null;
+    if (!responseData) return null;
 
-    const { alphabets, numbers, highestLowercaseAlphabet } = response;
-    let dataToRender = [];
-
-    if (selectedOptions.includes('Alphabets')) dataToRender = [...dataToRender, ...alphabets];
-    if (selectedOptions.includes('Numbers')) dataToRender = [...dataToRender, ...numbers];
-    if (selectedOptions.includes('Highest lowercase alphabet')) dataToRender.push(highestLowercaseAlphabet);
+    const { numbers, alphabets, highest_lowercase_alphabet } = responseData;
 
     return (
-      <div>
-        <h3>Response Data:</h3>
-        <ul>
-          {dataToRender.map((item, index) => (
-            <li key={index}>{item}</li>
-          ))}
-        </ul>
+      <div className="response-container">
+        {selectedOptions.includes('Numbers') && (
+          <div className="response-item">
+            <strong>Numbers:</strong> {JSON.stringify(numbers)}
+          </div>
+        )}
+        {selectedOptions.includes('Alphabets') && (
+          <div className="response-item">
+            <strong>Alphabets:</strong> {JSON.stringify(alphabets)}
+          </div>
+        )}
+        {selectedOptions.includes('Highest Lowercase Alphabet') && (
+          <div className="response-item">
+            <strong>Highest Lowercase Alphabet:</strong> {JSON.stringify(highest_lowercase_alphabet)}
+          </div>
+        )}
       </div>
     );
   };
 
   return (
     <div className="App">
-      <h1>My Frontend App</h1>
-      <input
-        type="text"
-        value={input}
-        onChange={handleInputChange}
-        placeholder="Enter JSON input"
-      />
-      <button onClick={handleSubmit}>Submit</button>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      {response && (
-        <select multiple onChange={handleOptionChange}>
-          <option value="Alphabets">Alphabets</option>
-          <option value="Numbers">Numbers</option>
-          <option value="Highest lowercase alphabet">Highest lowercase alphabet</option>
-        </select>
+      <h1>{'Bajaj Task - 21BEC0097'}</h1>
+      <form onSubmit={handleSubmit} className="form-container">
+        <div className="input-group">
+          <label>JSON Input:</label>
+          <textarea
+            value={jsonInput}
+            onChange={handleJsonInputChange}
+            rows="5"
+            cols="50"
+            placeholder='{"data": ["A", "B", "c"]}'
+          />
+        </div>
+        {error && <div className="error-message">{error}</div>}
+        <button type="submit" className="submit-button">Submit</button>
+      </form>
+
+      {responseData && (
+        <div className="response-section">
+          <h2>Multi-Select Filter</h2>
+          <select multiple onChange={handleMultiSelectChange} className="multi-select">
+            <option value="Numbers">Numbers</option>
+            <option value="Alphabets">Alphabets</option>
+            <option value="Highest Lowercase Alphabet">Highest Lowercase Alphabet</option>
+          </select>
+
+          <h2>Filtered Response</h2>
+          {renderResponse()}
+        </div>
       )}
-      {renderResponse()}
     </div>
   );
 };
